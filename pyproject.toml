@@ -16,4 +16,4 @@ dependencies = [
 python = "./.venv"
 
 [tool.uv.sources]
-robotiq-tools = { path = "../robotiq-tools" }
+robotiq-tools = { path = "../robotiq-tools", editable = true }

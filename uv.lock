@@ -19,7 +19,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.5.1" },
     { name = "ophyd", specifier = ">=1.11.2" },
     { name = "pyepics", specifier = ">=3.5.10" },
-    { name = "robotiq-tools", directory = "../robotiq-tools" },
+    { name = "robotiq-tools", editable = "../robotiq-tools" },
     { name = "scipy", specifier = ">=1.18.0" },
 ]
 
@@ -199,7 +199,7 @@ wheels = [
 [[package]]
 name = "robotiq-tools"
 version = "0.1.0"
-source = { directory = "../robotiq-tools" }
+source = { editable = "../robotiq-tools" }
 dependencies = [
     { name = "opencv-python" },
     { name = "pupil-apriltags" },
