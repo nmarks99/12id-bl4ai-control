@@ -47,6 +47,8 @@ def main():
         if not tag:
             return
 
+    print(f"{tag['tf']}")
+
     g_ca = RigidTransform.from_matrix(tag["tf"])
 
     g_wt = tf.pose_to_tf(get_tcp_pose())
@@ -56,10 +58,15 @@ def main():
     #  g_wf = tf.pose_to_tf(get_tcp_pose())
     #  g_wc = g_wf * tf.g_fc
 
-    g_wa = g_wc * g_ca
+    g_flip = RigidTransform.from_components([0, 0, 0], Rotation.from_rotvec([0, 0, np.pi]))
+    g_wa = g_wc * g_flip * g_ca
 
-    print(f"Tag in camera frame:\n{g_ca}")
-    print(f"\nTag in world frame:\n{g_wa}")
+    print(f"g_ca:\n{g_ca}")
+    print(f"\ng_wt:\n{g_wt}")
+    print(f"\ng_ft:\n{g_ft}")
+    print(f"\ng_wf:\n{g_wf}")
+    print(f"\ng_wc:\n{g_wc}")
+    print(f"\ng_wa:\n{g_wa}")
 
     tran, rot = g_wa.as_components()
 
