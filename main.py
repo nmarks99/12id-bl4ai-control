@@ -2,19 +2,37 @@ from robotiq_tools import WristCamera
 import numpy as np
 import tf
 from scipy.spatial.transform import RigidTransform, Rotation
+import time
 
 def get_tcp_pose():
-    return [-0.128, -0.256, 0.171, 0.0, 0.0, 0.0]
+    pose = [-134.878, -293.816, 290.852, -1.17952, -171.452, 53.8269]
+    pose[0] /= 1000.0
+    pose[1] /= 1000.0
+    pose[2] /= 1000.0
+    pose[3] *= np.pi/180.0
+    pose[4] *= np.pi/180.0
+    pose[5] *= np.pi/180.0
+    print(pose)
+    return pose
 
 def main():
-    cam = WristCamera(device_index=1)
+    cam = WristCamera()
+    time.sleep(1)
 
     # Locate our sample by tag ID
-    id = 22
-    tag = cam.locate_tag(id)
-    if (not tag):
-        print(f"Tag {id} not found")
-        return
+    id = 10
+    #  try a few times
+    for i in range(5):
+        tag = cam.locate_tag(id)
+        print(f"[Attempt {i}] ", end="")
+        if (not tag):
+            print(f"Tag {id} not found")
+        else:
+            print(f"Tag {id} found")
+            break;
+    else:
+        if not tag:
+            return
 
     g_ca = RigidTransform.from_matrix(tag["tf"])
     g_wf = tf.pose_to_tf(get_tcp_pose())
