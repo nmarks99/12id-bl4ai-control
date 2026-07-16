@@ -1,0 +1,17 @@
+[project]
+name = "robot-control"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "numpy>=2.5.1",
+    "robotiq-tools",
+    "scipy>=1.18.0",
+]
+
+[tool.ty.environment]
+python = "./.venv"
+
+[tool.uv.sources]
+robotiq-tools = { path = "/home/beams/NMARKS/devel/12id-BL4AI/robotiq-tools", editable = true }
