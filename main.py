@@ -13,7 +13,6 @@ def get_tcp_offset():
     ry = caget("bcur:Control:TCPOffset_Ry")
     rz = caget("bcur:Control:TCPOffset_Rz")
     offset = [x/1000.0, y/1000.0, z/1000.0, rx, ry, rz]
-    print(f"offset = {offset}")
     return offset
 
 
@@ -22,32 +21,9 @@ def get_tcp_pose():
     pose[0] /= 1000.0
     pose[1] /= 1000.0
     pose[2] /= 1000.0
-    print(f"robot pose = {pose}")
     return pose
 
-def main():
-    cam = WristCamera(device_index=0)
-    time.sleep(1)
-
-    # Locate our sample by tag ID
-    id = 10
-    #  try a few times
-    for i in range(5):
-        tag = cam.locate_tag(id)
-        print(f"[Attempt {i}] ", end="")
-        if (not tag):
-            print(f"Tag {id} not found")
-        else:
-            print(f"Tag {id} found")
-            break;
-    else:
-        if not tag:
-            return
-
-
-    # tag in camera frame
-    g_ca = RigidTransform.from_matrix(tag["tf"])
-
+def to_robot_frame(g_ca):
     # TCP in world frame
     g_wt = tf.pose_to_tf(get_tcp_pose())
 
@@ -63,13 +39,38 @@ def main():
     # And finally, tag in world frame
     g_wa = g_wc * g_ca
 
-    tran, rot = g_wa.as_components()
+    return g_wa
 
-    print("\nTag pose in robot base frame:")
-    x,y,z = tran
+
+def main():
+    cam = WristCamera(device_index=0)
+
+    # Locate our sample by tag ID
+    id = 10
+    #  try a few times in case we don't find it on the first go
+    for i in range(5):
+        tag = cam.locate_tag(id)
+        if (not tag):
+            print(f"Tag {id} not found. Trying again[{i+1}]")
+        else:
+            break;
+    else:
+        if not tag:
+            return
+
+
+    # tag in camera frame
+    g_ca = RigidTransform.from_matrix(tag["tf"])
+
+    # Get the tag in robot's base frame
+    g_wa = to_robot_frame(g_ca)
+
+    tran, rot = g_wa.as_components()
+    x,y,z = tran * 1000.0
     roll, pitch, yaw = rot.as_euler("xyz");
-    print(f"(x,y,z) = ({x},{y},{z})")
-    print(f"(roll,pitch,yaw) = ({roll},{pitch},{yaw})")
+    print("\nTag pose in robot base frame:")
+    print(f"         (x, y, z) = ({x:+10.4f}, {y:+10.4f}, {z:+10.4f}) mm")
+    print(f"(roll, pitch, yaw) = ({roll:+10.4f}, {pitch:+10.4f}, {yaw:+10.4f}) rad")
 
 if __name__ == "__main__":
     main()
