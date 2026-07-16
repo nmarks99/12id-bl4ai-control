@@ -3,16 +3,29 @@ import numpy as np
 import tf
 from scipy.spatial.transform import RigidTransform, Rotation
 import time
+from epics import caget
+
+def get_tcp_offset():
+    x = caget("bcur:Control:TCPOffset_X")
+    y = caget("bcur:Control:TCPOffset_Y")
+    z = caget("bcur:Control:TCPOffset_Z")
+    rx = caget("bcur:Control:TCPOffset_Roll")
+    ry = caget("bcur:Control:TCPOffset_Pitch")
+    rz = caget("bcur:Control:TCPOffset_Yaw")
+    offset = [x/1000.0, y/1000.0, z/1000.0, rx*(np.pi/180.0), ry*(np.pi/180.0), rz*(np.pi/180.0)]
+    print(f"offset = {offset}")
+    return offset
+
 
 def get_tcp_pose():
-    pose = [-134.878, -293.816, 290.852, -1.17952, -171.452, 53.8269]
+    pose = caget("bcur:Receive:ActualTCPPose")
     pose[0] /= 1000.0
     pose[1] /= 1000.0
-    pose[2] /= 1000.0
+    pose[2] /= (1000.0)
     pose[3] *= np.pi/180.0
     pose[4] *= np.pi/180.0
     pose[5] *= np.pi/180.0
-    print(pose)
+    print(f"robot pose = {pose}")
     return pose
 
 def main():
@@ -35,12 +48,17 @@ def main():
             return
 
     g_ca = RigidTransform.from_matrix(tag["tf"])
-    g_wf = tf.pose_to_tf(get_tcp_pose())
+
+    g_wt = tf.pose_to_tf(get_tcp_pose())
+    g_ft = tf.pose_to_tf(get_tcp_offset())
+    g_wf = g_wt * g_ft.inv()
     g_wc = g_wf * tf.g_fc
+    #  g_wf = tf.pose_to_tf(get_tcp_pose())
+    #  g_wc = g_wf * tf.g_fc
 
     g_wa = g_wc * g_ca
 
-    #  print(f"Tag in camera frame:\n{g_ca}")
+    print(f"Tag in camera frame:\n{g_ca}")
     print(f"\nTag in world frame:\n{g_wa}")
 
     tran, rot = g_wa.as_components()
