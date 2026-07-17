@@ -2,7 +2,7 @@ from robotiq_tools import WristCamera
 import numpy as np
 from scipy.spatial.transform import RigidTransform, Rotation
 import time
-from epics import caget
+from ur_robot import UR
 
 # IOC prefix
 PREFIX = "bcur:"
@@ -19,40 +19,40 @@ def pose_to_tf(pose):
 # Transform from robot flange to camera
 g_fc = pose_to_tf([0.0, 0.0433, 0.015, -np.pi/6, 0.0, 0.0])
 
-def get_tcp_pose():
+def get_tcp_pose(robot: UR):
     """
     Gets the current TCP pose from EPICS. Must convert mm->m
     """
-    pose = caget(f"{PREFIX}Receive:ActualTCPPose")
+    pose = robot.pose.readback.get()
     pose[0] /= 1000.0
     pose[1] /= 1000.0
     pose[2] /= 1000.0
     return pose
 
-def get_tcp_offset():
+def get_tcp_offset(robot: UR):
     """
     Gets the TCP offset from EPICS. Must convert mm->m
     """
-    x = caget(f"{PREFIX}Control:TCPOffset_X")
-    y = caget(f"{PREFIX}Control:TCPOffset_Y")
-    z = caget(f"{PREFIX}Control:TCPOffset_Z")
-    rx = caget(f"{PREFIX}Control:TCPOffset_Rx")
-    ry = caget(f"{PREFIX}Control:TCPOffset_Ry")
-    rz = caget(f"{PREFIX}Control:TCPOffset_Rz")
+    x = robot.tcp_offset.x.get()
+    y = robot.tcp_offset.y.get()
+    z = robot.tcp_offset.z.get()
+    rx = robot.tcp_offset.rx.get()
+    ry = robot.tcp_offset.ry.get()
+    rz = robot.tcp_offset.rz.get()
     offset = [x/1000.0, y/1000.0, z/1000.0, rx, ry, rz]
     return offset
 
 
-def camera_to_robot_frame(g_ca):
+def camera_to_robot_frame(g_ca, robot):
     """
     Finds the transformation between the robot's base frame and
     the tag given the transformation between the camera and the tag
     """
     # TCP in world frame
-    g_wt = pose_to_tf(get_tcp_pose())
+    g_wt = pose_to_tf(get_tcp_pose(robot))
 
     # TCP in flange frame
-    g_ft = pose_to_tf(get_tcp_offset())
+    g_ft = pose_to_tf(get_tcp_offset(robot))
 
     # flange in world frame
     g_wf = g_wt * g_ft.inv()
@@ -67,6 +67,9 @@ def camera_to_robot_frame(g_ca):
 
 
 def main():
+
+    robot = UR(PREFIX, name="robot")
+    robot.wait_for_connection()
 
     # Connect the wrist camera. Look at /dev/video*
     # to find what device_index should be
@@ -90,7 +93,7 @@ def main():
     g_ca = RigidTransform.from_matrix(tag["tf"])
 
     # Get the tag in robot's base frame
-    g_wa = camera_to_robot_frame(g_ca)
+    g_wa = camera_to_robot_frame(g_ca, robot)
 
     tran, rot = g_wa.as_components()
     x,y,z = tran * 1000.0
