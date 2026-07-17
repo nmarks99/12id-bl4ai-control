@@ -3,7 +3,7 @@ Tests AprilTag detection with Robotiq wrist camera and finding
 the transformation between the robot's base frame and AprilTag.
 """
 
-from robotiq_tools import WristCamera
+from tag_camera import TagCamera
 import numpy as np
 from scipy.spatial.transform import RigidTransform, Rotation
 import time
@@ -75,14 +75,14 @@ def main():
 
     # Connect the wrist camera. Look at /dev/video*
     # to find what device_index should be
-    cam = WristCamera(device_index=0)
+    cam = TagCamera(device_index=0)
 
     # Locate our sample by tag ID
     id = 10
 
     #  try a few times in case we don't find it on the first go
     for i in range(5):
-        tag = cam.locate_tag(id)
+        tag = cam.locate(id)
         if (not tag):
             print(f"Tag {id} not found. Trying again[{i+1}]")
         else:

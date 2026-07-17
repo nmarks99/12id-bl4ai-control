@@ -9,12 +9,12 @@ dependencies = [
     "ophyd>=1.11.2",
     "pyepics>=3.5.10",
     "pyrobotiqgripper>=3.2.8",
-    "robotiq-tools",
     "scipy>=1.18.0",
+    "tag-camera",
 ]
 
 [tool.ty.environment]
 python = "./.venv"
 
 [tool.uv.sources]
-robotiq-tools = { path = "../robotiq-tools", editable = true }
+tag-camera = { git = "https://github.com/nmarks99/tag-camera.git" }
