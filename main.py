@@ -1,3 +1,8 @@
+"""
+Tests AprilTag detection with Robotiq wrist camera and finding
+the transformation between the robot's base frame and AprilTag.
+"""
+
 from robotiq_tools import WristCamera
 import numpy as np
 from scipy.spatial.transform import RigidTransform, Rotation
@@ -17,42 +22,37 @@ def pose_to_tf(pose):
     )
 
 # Transform from robot flange to camera
+# is this correct?
 g_fc = pose_to_tf([0.0, 0.0433, 0.015, -np.pi/6, 0.0, 0.0])
 
-def get_tcp_pose(robot: UR):
-    """
-    Gets the current TCP pose from EPICS. Must convert mm->m
-    """
-    pose = robot.pose.readback.get()
-    pose[0] /= 1000.0
-    pose[1] /= 1000.0
-    pose[2] /= 1000.0
-    return pose
+def get_tag_in_robot_frame(tf_cam_to_tag, robot):
+    """ Gets the transform from robot base frame to AprilTag
 
-def get_tcp_offset(robot: UR):
-    """
-    Gets the TCP offset from EPICS. Must convert mm->m
-    """
-    x = robot.tcp_offset.x.get()
-    y = robot.tcp_offset.y.get()
-    z = robot.tcp_offset.z.get()
-    rx = robot.tcp_offset.rx.get()
-    ry = robot.tcp_offset.ry.get()
-    rz = robot.tcp_offset.rz.get()
-    offset = [x/1000.0, y/1000.0, z/1000.0, rx, ry, rz]
-    return offset
-
-
-def camera_to_robot_frame(g_ca, robot):
-    """
     Finds the transformation between the robot's base frame and
     the tag given the transformation between the camera and the tag
+
+    Args:
+        tf_cam_to_tag: 4x4 transformation matrix from camera to tag frame
+        robot: UR ophyd device instance
+
+    Returns:
+        Transformation between robot base frame and tag as a RigidTransform
     """
     # TCP in world frame
-    g_wt = pose_to_tf(get_tcp_pose(robot))
+    tcp_pose = robot.pose.readback.get()
+    tcp_pose[:3] /= 1000.0 # convert mm->m
+    g_wt = pose_to_tf(tcp_pose)
 
-    # TCP in flange frame
-    g_ft = pose_to_tf(get_tcp_offset(robot))
+    # TCP in flange frame, note convert mm->m
+    tcp_offset = [
+        robot.tcp_offset.x.get() / 1000.0,
+        robot.tcp_offset.y.get() / 1000.0,
+        robot.tcp_offset.z.get() / 1000.0,
+        robot.tcp_offset.rx.get(),
+        robot.tcp_offset.ry.get(),
+        robot.tcp_offset.rz.get()
+    ]
+    g_ft = pose_to_tf(tcp_offset)
 
     # flange in world frame
     g_wf = g_wt * g_ft.inv()
@@ -61,6 +61,7 @@ def camera_to_robot_frame(g_ca, robot):
     g_wc = g_wf * g_fc
 
     # And finally, tag in world frame
+    g_ca = RigidTransform.from_matrix(tf_cam_to_tag)
     g_wa = g_wc * g_ca
 
     return g_wa
@@ -68,6 +69,7 @@ def camera_to_robot_frame(g_ca, robot):
 
 def main():
 
+    # Connect to robot using ophyd device
     robot = UR(PREFIX, name="robot")
     robot.wait_for_connection()
 
@@ -89,11 +91,9 @@ def main():
         if not tag:
             return
 
-    # tag in camera frame
-    g_ca = RigidTransform.from_matrix(tag["tf"])
-
     # Get the tag in robot's base frame
-    g_wa = camera_to_robot_frame(g_ca, robot)
+    # tag["tf"] is a 4x4 transformation matrix between camera origin and AprilTag center
+    g_wa = get_tag_in_robot_frame(tag["tf"], robot)
 
     tran, rot = g_wa.as_components()
     x,y,z = tran * 1000.0

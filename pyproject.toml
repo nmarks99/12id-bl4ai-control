@@ -8,6 +8,7 @@ dependencies = [
     "numpy>=2.5.1",
     "ophyd>=1.11.2",
     "pyepics>=3.5.10",
+    "pyrobotiqgripper>=3.2.8",
     "robotiq-tools",
     "scipy>=1.18.0",
 ]
