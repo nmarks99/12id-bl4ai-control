@@ -8,6 +8,7 @@ import numpy as np
 from scipy.spatial.transform import RigidTransform, Rotation
 import time
 from ur_robot import UR
+from pathlib import Path
 
 # IOC prefix
 PREFIX = "bcur:"
@@ -76,6 +77,11 @@ def main():
     # Connect the wrist camera. Look at /dev/video*
     # to find what device_index should be
     cam = TagCamera(device_index=0)
+
+    # load camera calibration if present
+    # not sure yet if this calibration is correct
+    #  if Path("calibration.npz").is_file():
+        #  cam.load_calibration("calibration.npz")
 
     # Locate our sample by tag ID
     id = 10
