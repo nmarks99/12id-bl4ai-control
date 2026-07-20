@@ -121,10 +121,11 @@ def main():
 
             tran, rot = g_wa.as_components()
             x,y,z = tran * 1000.0
-            roll, pitch, yaw = rot.as_euler("xyz");
+            #  roll, pitch, yaw = rot.as_euler("xyz");
+            rx, ry, rz = rot.as_rotvec();
             print("\nTag pose in robot base frame:")
-            print(f"         (x, y, z) = ({x:+10.4f}, {y:+10.4f}, {z:+10.4f}) mm")
-            print(f"(roll, pitch, yaw) = ({roll:+10.4f}, {pitch:+10.4f}, {yaw:+10.4f}) rad")
+            print(f"   (x, y, z) = ({x:+10.4f}, {y:+10.4f}, {z:+10.4f}) mm")
+            print(f"(rx, ry, rz) = ({rx:+10.4f}, {ry:+10.4f}, {rz:+10.4f}) rad")
             print("-----------------------------------------------------------------------\n")
             time.sleep(0.2)
 
