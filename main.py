@@ -65,6 +65,15 @@ def get_tag_in_robot_frame(tf_cam_to_tag, robot):
     g_ca = RigidTransform.from_matrix(tf_cam_to_tag)
     g_wa = g_wc * g_ca
 
+    # hacky fix to computed Z position in tag frame
+    Tz = RigidTransform.from_translation([0.0, 0.0, -0.015])
+    g_wa = Tz * g_wa
+    #  print(f"Robot TCP pose = {tcp_pose}")
+    #  print(f"Robot TCP offset = {tcp_offset}")
+    #  print(f"g_fc.translation = {g_fc.translation}")
+    #  print(f"g_ca.translation = {g_ca.translation}")
+    #  print(f"g_wa.translation = {g_wa.translation}")
+
     return g_wa
 
 
@@ -77,6 +86,10 @@ def main():
     # Connect the wrist camera. Look at /dev/video*
     # to find what device_index should be
     cam = TagCamera(device_index=0)
+    # Adjusting focus for different distances will yield better results.
+    # Autofocus doesn't work very well...Perhaps we can instead just always
+    # locate the tag from roughly the same spot?
+    # cam.set_focus(350)
 
     # load camera calibration if present
     # not sure yet if this calibration is correct
@@ -86,27 +99,37 @@ def main():
     # Locate our sample by tag ID
     id = 10
 
-    #  try a few times in case we don't find it on the first go
-    for i in range(5):
-        tag = cam.locate(id)
-        if (not tag):
-            print(f"Tag {id} not found. Trying again[{i+1}]")
-        else:
-            break;
-    else:
-        if not tag:
-            return
+    MAX_RETRY = 5
+    try:
+        while True:
+            #  try a few times in case we don't find it on the first attempt
+            for i in range(MAX_RETRY):
+                tag = cam.locate(id)
+                if (not tag):
+                    print(f"Tag {id} not found. Trying again[{i}]")
+                    time.sleep(0.25)
+                else:
+                    break;
+            else:
+                if not tag:
+                    print(f"Tag {id} not found after {MAX_RETRY} attempts")
+                    return
 
-    # Get the tag in robot's base frame
-    # tag["tf"] is a 4x4 transformation matrix between camera origin and AprilTag center
-    g_wa = get_tag_in_robot_frame(tag["tf"], robot)
+            # Get the tag in robot's base frame
+            # tag["tf"] is a 4x4 transformation matrix between camera origin and AprilTag center
+            g_wa = get_tag_in_robot_frame(tag["tf"], robot)
 
-    tran, rot = g_wa.as_components()
-    x,y,z = tran * 1000.0
-    roll, pitch, yaw = rot.as_euler("xyz");
-    print("\nTag pose in robot base frame:")
-    print(f"         (x, y, z) = ({x:+10.4f}, {y:+10.4f}, {z:+10.4f}) mm")
-    print(f"(roll, pitch, yaw) = ({roll:+10.4f}, {pitch:+10.4f}, {yaw:+10.4f}) rad")
+            tran, rot = g_wa.as_components()
+            x,y,z = tran * 1000.0
+            roll, pitch, yaw = rot.as_euler("xyz");
+            print("\nTag pose in robot base frame:")
+            print(f"         (x, y, z) = ({x:+10.4f}, {y:+10.4f}, {z:+10.4f}) mm")
+            print(f"(roll, pitch, yaw) = ({roll:+10.4f}, {pitch:+10.4f}, {yaw:+10.4f}) rad")
+            print("-----------------------------------------------------------------------\n")
+            time.sleep(0.2)
+
+    except KeyboardInterrupt:
+        pass
 
 if __name__ == "__main__":
     main()
